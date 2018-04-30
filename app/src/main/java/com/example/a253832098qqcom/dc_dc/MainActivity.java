@@ -11,6 +11,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.DataInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.net.Socket;
@@ -32,36 +33,44 @@ public class MainActivity extends AppCompatActivity {
                 case R.id.bt_set_voltage:
                     if(!btconnectflage){
                         Toast.makeText(MainActivity.this,"please connect tcp!",Toast.LENGTH_SHORT).show();
+                        break;
                     }
                     else{
-                        new Thread(new Runnable(){
-                            @Override
-                            public void run() {
-                                tcpClient.send("V"+(Float.parseFloat(edvoltage.getText().toString())+fl));
-                            }
-                        }).start();
+                        if(!edvoltage.getText().toString().equals("")){
+                            new Thread(new Runnable(){
+                                @Override
+                                public void run() {
+                                    tcpClient.send("V"+(Float.parseFloat(edvoltage.getText().toString())+fl));
+                                }
+                            }).start();
+                            break;
+                        }
+                        else{
+                            Toast.makeText(MainActivity.this,"please set voltage value",Toast.LENGTH_SHORT).show();
+                            break;
+                        }
                     }
-                    break;
                 case R.id.bt_connect_tcp:
                     if(btconnectflage){
                         btconnectflage=false;
                         btconnect.setText("连接");
                         tcpClient.tcpunconnect();
+                        break;
                     }
                     else {
                         btconnectflage = true;
                         btconnect.setText("断开");
                         tcpClient.setagrv(edtcpip.getText().toString(),Integer.parseInt(edtcpport.getText().toString()));
                         new Thread(tcpClient).start();
+                        break;
                     }
-                    break;
                 case R.id.bt_wifi_connect:
                     if(btconnectflage) {
                         new Thread(new Runnable() {
                             @Override
                             public void run() {
                                 tcpClient.send("AT+CWJAP=" + "\"" + edwifissid.getText().toString() + "\"" +","
-                                        + "\"" +edwifipswd.getText().toString()+ "\"");
+                                        + "\"" +edwifipswd.getText().toString()+ "\""+"#END#");
                             }
                         }).start();
                     }
@@ -114,6 +123,8 @@ public class MainActivity extends AppCompatActivity {
         boolean isrun=false;
         private DataInputStream dis;
         private PrintWriter pw;
+        private InputStream is;
+        private Socket socket = null;
 
         public TcpClient(String ip,int port){
             this.serverIP=ip;
@@ -139,9 +150,9 @@ public class MainActivity extends AppCompatActivity {
             int rcvLen;
             byte buff[] = new byte[4096];
             String rcvMsg;
-            InputStream is;
+
             try{
-                Socket socket = new Socket(serverIP,serverPort);
+                socket = new Socket(serverIP,serverPort);
                 socket.setSoTimeout(5000);
                 isrun=true;
                 pw = new PrintWriter(socket.getOutputStream(),true);
@@ -164,6 +175,14 @@ public class MainActivity extends AppCompatActivity {
                 }catch (Exception e){
                     e.printStackTrace();
                 }
+            }
+            try {
+                socket.close();
+                pw.close();
+                dis.close();
+                is.close();
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
     }
